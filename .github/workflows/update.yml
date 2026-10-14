@@ -1,0 +1,47 @@
+name: Update the radar
+
+on:
+  schedule:
+    - cron: "17 * * * *"   # every hour; GitHub may start it a few minutes late
+  workflow_dispatch:        # "Run workflow" button in the Actions tab
+  push:
+    branches: [main]
+
+permissions:
+  contents: write   # save newly found announcements back to data/
+  pages: write
+  id-token: write
+
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch announcements and rebuild the page
+        run: python build_site.py
+
+      - name: Save new announcements
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/posts_*.json
+          git diff --cached --quiet || (git commit -m "New bonus announcements" && git push)
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stake Bonus Radar</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f5f2;
+  --surface-1: #fcfcfb;
+  --surface-2: #f0efec;
+  --border: #e3e2dd;
+  --grid: #e8e7e3;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #77766f;
+  --accent: #2a78d6;
+  --series-monthly: #2a78d6;
+  --series-post: #eb6834;
+  --series-pre: #1baf7a;
+  --series-extra: #a9a8a1;
+  --bar: #86b6ef;
+  --bar-peak: #2a78d6;
+  --now: #e34948;
+  --good: #008300;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211;
+    --surface-1: #1a1a19;
+    --surface-2: #232321;
+    --border: #2f2f2c;
+    --grid: #2a2a28;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #94938a;
+    --accent: #3987e5;
+    --series-monthly: #3987e5;
+    --series-post: #d95926;
+    --series-pre: #199e70;
+    --series-extra: #6b6a64;
+    --bar: #184f95;
+    --bar-peak: #3987e5;
+    --now: #e66767;
+    --good: #3fae3f;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211;
+  --surface-1: #1a1a19;
+  --surface-2: #232321;
+  --border: #2f2f2c;
+  --grid: #2a2a28;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #94938a;
+  --accent: #3987e5;
+  --series-monthly: #3987e5;
+  --series-post: #d95926;
+  --series-pre: #199e70;
+  --series-extra: #6b6a64;
+  --bar: #184f95;
+  --bar-peak: #3987e5;
+  --now: #e66767;
+  --good: #3fae3f;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text-primary);
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 1120px; margin: 0 auto; padding: 28px 16px 48px; }
+header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; justify-content: space-between; margin-bottom: 20px; }
+h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 17px; margin: 0 0 4px; }
+.sub { color: var(--text-secondary); font-size: 13px; }
+.muted { color: var(--text-muted); }
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+.seg button {
+  font: inherit; font-size: 14px; border: 0; background: transparent; color: var(--text-secondary);
+  padding: 6px 14px; border-radius: 7px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--surface-1); color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.card, .panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.kind { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.swatch { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--surface-2); color: var(--text-secondary); white-space: nowrap; }
+.chip.live { color: var(--text-primary); box-shadow: inset 0 0 0 1px var(--accent); }
+.big { font-size: 26px; font-weight: 650; letter-spacing: -0.01em; line-height: 1.15; }
+.count { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--text-secondary); }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; font-size: 13px; }
+dt { color: var(--text-muted); }
+dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.spark { position: relative; }
+.spark-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.card.solo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 16px 40px; align-items: end; }
+.solo-main, .solo-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.solo .big { font-size: 34px; }
+@media (max-width: 720px) { .card.solo { grid-template-columns: minmax(0, 1fr); } }
+.spark svg, .chart svg { display: block; width: 100%; overflow: visible; }
+.panel { margin-top: 12px; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline; margin-bottom: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--text-secondary); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart { position: relative; }
+.axis text { fill: var(--text-muted); font-size: 11px; }
+.row-label { fill: var(--text-secondary); font-size: 11px; }
+.tip {
+  position: fixed; pointer-events: none; z-index: 10; background: var(--surface-1); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 8px; padding: 6px 9px; font-size: 12px; line-height: 1.35;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18); max-width: 260px; display: none;
+}
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--grid); }
+th { color: var(--text-muted); font-weight: 500; }
+.hit { color: var(--good); }
+.miss { color: var(--now); }
+.scroll { overflow-x: auto; }
+.stat { font-size: 30px; font-weight: 650; }
+h3 { font-size: 14px; margin: 0 0 8px; font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.tile { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+.tile .label { font-size: 12px; color: var(--text-muted); }
+.tile .value { font-size: 22px; font-weight: 650; margin: 2px 0; }
+.tile .note { font-size: 12px; color: var(--text-secondary); }
+.two.flat { gap: 20px; }
+.records { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+.records li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; }
+footer { margin-top: 18px; font-size: 12px; color: var(--text-muted); }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Stake bonus radar</h1>
+      <div class="sub" id="asof"></div>
+    </div>
+    <div class="seg" role="group" aria-label="Site" id="sites"></div>
+  </header>
+
+  <section class="cards" id="cards"></section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Drop calendar</h2>
+        <div class="sub">Day of the month each monthly bonus landed on, from Stake's official Telegram channel. Click a dot to open the post.</div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="chart" id="calendar"></div>
+  </section>
+
+  <div class="two">
+    <section class="panel">
+      <div class="panel-head"><div><h2>Time of day</h2><div class="sub">Recent monthly drops by hour, in your local time</div></div></div>
+      <div class="chart" id="hours"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><h2>How accurate is this?</h2><div class="sub">Each past monthly predicted using only data from before its month</div></div></div>
+      <div id="accuracy"></div>
+    </section>
+  </div>
+
+</main>
+<div class="tip" id="tip"></div>
+
+<script>
+let DATA = /*DATA*/null;
+const KINDS = {
+  monthly: { label: "Monthly", color: "var(--series-monthly)" },
+  pre: { label: "Pre-monthly", color: "var(--series-pre)" },
+  post: { label: "Post-monthly", color: "var(--series-post)" },
+  extra: { label: "Extra / #2 monthly", color: "var(--series-extra)" },
+};
+const HOUR = 3600e3, DAY = 24 * HOUR;
+const fmtDay = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short" });
+const fmtShort = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short" });
+const fmtTime = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" });
+const fmtFull = new Intl.DateTimeFormat(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const fmtMonth = new Intl.DateTimeFormat(undefined, { month: "long", timeZone: "UTC" });
+const pct = p => p >= 0.995 ? "99%+" : p < 0.005 ? "<1%" : Math.round(p * 100) + "%";
+const monthName = ym => fmtMonth.format(new Date(ym + "-01T00:00:00Z"));
+const dayKey = t => { const d = new Date(t); return d.getFullYear() * 400 + d.getMonth() * 32 + d.getDate(); };
+
+let site = (() => { try { return localStorage.getItem("radar-site") || "stake.com"; } catch { return "stake.com"; } })();
+if (!DATA.sites[site]) site = Object.keys(DATA.sites)[0];
+
+function countdown(ms) {
+  if (ms <= 0) return "now";
+  const d = Math.floor(ms / DAY), h = Math.floor(ms % DAY / HOUR), m = Math.floor(ms % HOUR / 60e3), s = Math.floor(ms % 60e3 / 1e3);
+  return d > 0 ? `${d}d ${h}h ${m}m` : `${h}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+}
+
+/* Condition a prediction on nothing having dropped yet. */
+function summarize(b, now) {
+  const slots = b.slots.map(([t, p]) => [t * 1000, p]);
+  const left = slots.filter(([t]) => t >= now).reduce((a, [, p]) => a + p, 0);
+  const prior = b.prior;
+  const chance = prior >= 1 ? 1 : prior * left / (prior * left + (1 - prior));
+  if (left <= 0) return { chance: 0, days: [] };
+  const future = slots.filter(([t]) => t >= now).map(([t, p]) => [t, p / left]);
+  const peak = future.reduce((a, b) => b[1] > a[1] ? b : a)[0];
+  const window = mass => {
+    let cum = 0, lo = null, hi = null;
+    for (const [t, p] of future) {
+      cum += p;
+      if (lo === null && cum >= (1 - mass) / 2) lo = t;
+      if (hi === null && cum >= 1 - (1 - mass) / 2) hi = t;
+    }
+    return [lo, hi ?? future[future.length - 1][0]];
+  };
+  const within = h => chance * future.filter(([t]) => t < now + h * HOUR).reduce((a, [, p]) => a + p, 0);
+  const byDay = new Map();
+  for (const [t, p] of future) {
+    const k = dayKey(t);
+    const cur = byDay.get(k) || { t: new Date(new Date(t).toDateString()).getTime(), p: 0 };
+    cur.p += p; byDay.set(k, cur);
+  }
+  const days = [...byDay.values()].sort((a, b) => a.t - b.t);
+  const peakDay = days.reduce((a, b) => b.p > a.p ? b : a);
+  return { chance, peak, peakDay, w50: window(0.5), w80: window(0.8), p24: within(24), p7d: within(168), days };
+}
+
+function range([a, b]) {
+  const sa = fmtShort.format(a), sb = fmtShort.format(b);
+  return sa === sb ? sa : `${sa} – ${sb}`;
+}
+
+function sparkline(days, peakDay, now) {
+  const shown = days.filter(d => d.p > 0.004);
+  if (!shown.length) return "";
+  const first = shown[0].t, last = shown[shown.length - 1].t;
+  const n = Math.round((last - first) / DAY) + 1;
+  const W = 300, H = 54, gap = 2, bw = Math.min(24, (W - gap * (n - 1)) / n);
+  const max = Math.max(...shown.map(d => d.p));
+  let bars = "";
+  for (const d of shown) {
+    const i = Math.round((d.t - first) / DAY);
+    const h = Math.max(2, (d.p / max) * (H - 14));
+    const x = i * (bw + gap), y = H - 14 - h;
+    const fill = d === peakDay ? "var(--bar-peak)" : "var(--bar)";
+    bars += `<path d="M${x},${H - 14}V${y + Math.min(4, h / 2)}q0,-${Math.min(4, h / 2)} ${Math.min(4, bw / 2)},-${Math.min(4, h / 2)}H${x + bw - Math.min(4, bw / 2)}q${Math.min(4, bw / 2)},0 ${Math.min(4, bw / 2)},${Math.min(4, h / 2)}V${H - 14}Z" fill="${fill}"
+      data-tip="${fmtDay.format(d.t)}<br><b>${pct(d.p)}</b> of the remaining chance"></path>
+      <rect x="${x - gap / 2}" y="0" width="${bw + gap}" height="${H}" fill="transparent" data-tip="${fmtDay.format(d.t)}<br><b>${pct(d.p)}</b> of the remaining chance"></rect>`;
+  }
+  // labels live outside the svg so the stretched chart does not distort the text
+  const span = (n - 1) * (bw + gap) + bw;
+  return `<svg viewBox="0 0 ${span} ${H - 14}" preserveAspectRatio="none" style="height:${H - 14}px">
+    <line x1="0" x2="${span}" y1="${H - 14}" y2="${H - 14}" stroke="var(--grid)"></line>${bars}</svg>
+    <div class="spark-axis"><span>${fmtShort.format(first)}</span><span>${fmtShort.format(last)}</span></div>`;
+}
+
+function latestLine(s, kind) {
+  const l = s.latest[kind];
+  return l ? `Last: ${monthName(l.month)} · ${fmtFull.format(new Date(l.time))}` : "Never seen";
+}
+
+function renderCards() {
+  const now = Date.now();
+  const s = DATA.sites[site];
+  let html = "";
+  for (const kind of ["monthly"]) {
+    const b = s.bonuses[kind];
+    const K = KINDS[kind];
+    if (!b) { html += `<article class="card"><div class="kind"><span class="swatch" style="background:${K.color}"></span>${K.label}</div><div class="muted">No upcoming window.</div></article>`; continue; }
+    const r = summarize(b, now);
+    const month = monthName(b.month);
+    let chip, big, line, extra = "";
+    if (r.chance <= 0.005 || !r.days.length) {
+      chip = `<span class="chip">Window passed</span>`;
+      big = `<div class="big">Not this month</div>`;
+      line = `<div class="count">${latestLine(s, kind)}</div>`;
+    } else {
+      const open = now >= r.w80[0];
+      chip = kind === "monthly"
+        ? `<span class="chip ${open ? "live" : ""}">${open ? "Window open" : "Expected"}</span>`
+        : `<span class="chip ${open ? "live" : ""}">${pct(r.chance)} chance</span>`;
+      big = `<div class="big">${fmtDay.format(r.peakDay.t)}</div>
+        <div class="count">most likely ~${fmtTime.format(r.peak)} · ${open ? "window closes in" : "window opens in"} <b data-cd="${open ? r.w80[1] : r.w80[0]}"></b></div>`;
+      line = `<dl>
+        <dt>Likely (50%)</dt><dd>${range(r.w50)}</dd>
+        <dt>Window (80%)</dt><dd>${range(r.w80)}</dd>
+        <dt>Next 24 hours</dt><dd>${pct(r.p24)}</dd>
+        <dt>Next 7 days</dt><dd>${pct(r.p7d)}</dd>
+        ${kind !== "monthly" ? `<dt>Happens in ${month}</dt><dd>${pct(r.chance)}</dd>` : ""}
+      </dl>`;
+      extra = `<div class="spark">${sparkline(r.days, r.peakDay, now)}</div>
+        <div class="sub">${latestLine(s, kind)} · based on ${b.basis} past drops</div>`;
+    }
+    html += `<article class="card solo">
+      <div class="solo-main"><div class="card-head"><div class="kind"><span class="swatch" style="background:${K.color}"></span>${month} ${K.label.toLowerCase()} bonus</div>${chip}</div>
+      ${big}${line}</div><div class="solo-side">${extra}</div></article>`;
+  }
+  document.getElementById("cards").innerHTML = html;
+  tick();
+}
+
+function tick() {
+  const now = Date.now();
+  for (const el of document.querySelectorAll("[data-cd]")) {
+    const t = +el.dataset.cd;
+    if (t - now <= 0) { renderCards(); return; }
+    el.textContent = countdown(t - now);
+  }
+}
+
+function renderCalendar() {
+  const s = DATA.sites[site];
+  const monthly = s.history.filter(e => e.kind === "monthly");
+  const months = [...new Set(monthly.map(e => e.month))].sort().slice(-18);
+  const W = 860, rowH = 22, top = 8, left = 64, right = 10;
+  const H = top + months.length * rowH + 26;
+  const x0 = -2, x1 = 31;
+  const X = d => left + (d - x0) / (x1 - x0) * (W - left - right);
+  let g = "";
+  for (let d = 1; d <= 31; d += 1) {
+    if (d === 1 || d % 5 === 0) g += `<line x1="${X(d)}" x2="${X(d)}" y1="${top}" y2="${H - 22}" stroke="var(--grid)"></line>
+      <text x="${X(d)}" y="${H - 6}" text-anchor="middle">${d}</text>`;
+  }
+  g += `<text x="${X(-1)}" y="${H - 6}" text-anchor="middle">prev</text>`;
+  let rows = "", dots = "";
+  months.forEach((m, i) => {
+    const y = top + i * rowH + rowH / 2;
+    rows += `<text x="${left - 8}" y="${y + 4}" text-anchor="end" class="row-label">${new Date(m + "-01T00:00:00Z").toLocaleDateString(undefined, { month: "short", year: "2-digit", timeZone: "UTC" })}</text>`;
+    for (const e of monthly.filter(e => e.month === m)) {
+      const t = new Date(e.time);
+      const [yy, mm] = m.split("-").map(Number);
+      const dom = (t - new Date(yy, mm - 1, 1)) / DAY + 1;
+      const tip = `<b>${e.title.replace(/[<>&"]/g, "")}</b><br>${KINDS[e.kind].label} · ${fmtFull.format(t)}`;
+      dots += `<a href="${e.post}" target="_blank" rel="noopener"><circle cx="${X(Math.max(x0 + 0.3, dom))}" cy="${y}" r="5" fill="${KINDS[e.kind].color}" stroke="var(--surface-1)" stroke-width="2" data-tip="${tip.replace(/"/g, "&quot;")}"></circle>
+        <circle cx="${X(Math.max(x0 + 0.3, dom))}" cy="${y}" r="10" fill="transparent" data-tip="${tip.replace(/"/g, "&quot;")}"></circle></a>`;
+    }
+  });
+  // where we are in the current month
+  const now = new Date();
+  const curM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const ci = months.indexOf(curM);
+  let nowMark = "";
+  const domNow = now.getDate() + now.getHours() / 24;
+  const yNow = ci >= 0 ? top + ci * rowH : top + months.length * rowH - rowH;
+  nowMark = `<line x1="${X(domNow)}" x2="${X(domNow)}" y1="${yNow}" y2="${yNow + rowH}" stroke="var(--now)" stroke-width="2"></line>`;
+  document.getElementById("calendar").innerHTML = `<div class="scroll"><svg viewBox="0 0 ${W} ${H}" style="min-width:620px">
+    <g class="axis">${g}</g>${rows}${dots}${nowMark}</svg></div>`;
+  document.getElementById("legend").innerHTML = [KINDS.monthly]
+    .map(k => `<span><span class="swatch" style="background:${k.color}"></span>${k.label} bonus</span>`).join("")
+    + `<span><span style="width:2px;height:12px;background:var(--now)"></span>Today</span>`;
+}
+
+function renderHours() {
+  const s = DATA.sites[site];
+  // shift UTC hours into the viewer's local hours
+  const offset = -new Date().getTimezoneOffset() / 60;
+  const local = Array(24).fill(0);
+  s.hours.forEach((p, h) => { local[((Math.round(h + offset) % 24) + 24) % 24] += p; });
+  const W = 420, H = 130, b = 20, gap = 2, bw = (W - gap * 23) / 24;
+  const max = Math.max(...local);
+  let bars = "";
+  local.forEach((p, h) => {
+    const hh = Math.max(1, p / max * (H - b - 6));
+    const x = h * (bw + gap), y = H - b - hh, r = Math.min(4, bw / 2, hh / 2);
+    const tip = `${String(h).padStart(2, "0")}:00–${String((h + 1) % 24).padStart(2, "0")}:00<br><b>${pct(p)}</b> of recent drops`;
+    bars += `<path d="M${x},${H - b}V${y + r}q0,-${r} ${r},-${r}H${x + bw - r}q${r},0 ${r},${r}V${H - b}Z" fill="${p === max ? "var(--bar-peak)" : "var(--bar)"}"></path>
+      <rect x="${x - 1}" y="0" width="${bw + 2}" height="${H}" fill="transparent" data-tip="${tip}"></rect>`;
+  });
+  let ticks = "";
+  for (const h of [0, 6, 12, 18]) ticks += `<text x="${h * (bw + gap) + bw / 2}" y="${H - 4}" text-anchor="middle">${String(h).padStart(2, "0")}:00</text>`;
+  document.getElementById("hours").innerHTML = `<svg viewBox="0 0 ${W} ${H}">
+    <line x1="0" x2="${W}" y1="${H - b}" y2="${H - b}" stroke="var(--grid)"></line>${bars}<g class="axis">${ticks}</g></svg>
+    <div class="sub">In your local time. Stake changed its usual drop time during 2026, so recent drops count most.</div>`;
+}
+
+function renderAccuracy() {
+  const s = DATA.sites[site];
+  const rows = s.backtest.monthly || [];
+  if (!rows.length) { document.getElementById("accuracy").innerHTML = `<div class="muted">Not enough history yet.</div>`; return; }
+  const hits = rows.filter(r => r.hit).length;
+  const err = rows.reduce((a, r) => a + r.err, 0) / rows.length;
+  const naive = rows.filter(r => r.naive_err !== null);
+  const nerr = naive.reduce((a, r) => a + r.naive_err, 0) / Math.max(1, naive.length);
+  let table = rows.slice(-8).reverse().map(r => {
+    const a = new Date(r.actual);
+    return `<tr><td>${monthName(r.month)}</td><td>${fmtShort.format(a)}</td><td>${fmtShort.format(new Date(r.lo))} – ${fmtShort.format(new Date(r.hi))}</td><td class="${r.hit ? "hit" : "miss"}">${r.hit ? "✓ in window" : "✗ missed"}</td></tr>`;
+  }).join("");
+  document.getElementById("accuracy").innerHTML = `
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:10px">
+      <div><div class="stat">${hits}/${rows.length}</div><div class="sub">monthlies inside the 80% window</div></div>
+      <div><div class="stat">${err.toFixed(1)}d</div><div class="sub">average miss of the single best day<br>("always the 15th": ${nerr.toFixed(1)}d)</div></div>
+    </div>
+    <div class="scroll"><table><thead><tr><th>Month</th><th>Dropped</th><th>80% window</th><th></th></tr></thead><tbody>${table}</tbody></table></div>
+    <div class="sub" style="margin-top:8px">The exact day is genuinely noisy (anywhere from the 3rd to the 15th lately), so read the windows, not the single best day.</div>`;
+}
+
+function renderSites() {
+  document.getElementById("sites").innerHTML = Object.keys(DATA.sites)
+    .map(k => `<button type="button" aria-pressed="${k === site}" data-site="${k}">${k}</button>`).join("");
+  const latest = Math.max(...Object.values(DATA.sites).flatMap(s => s.history.filter(e => e.kind === "monthly").map(e => +new Date(e.time))));
+  document.getElementById("asof").textContent =
+    `Updated ${fmtFull.format(new Date(DATA.generated))} · last monthly bonus ${fmtFull.format(latest)} · all times in your local time`;
+}
+
+function render() { renderSites(); renderCards(); renderCalendar(); renderHours(); renderAccuracy(); }
+
+document.getElementById("sites").addEventListener("click", e => {
+  const k = e.target.closest("button")?.dataset.site;
+  if (!k) return;
+  site = k;
+  try { localStorage.setItem("radar-site", k); } catch {}
+  render();
+});
+
+const tip = document.getElementById("tip");
+document.addEventListener("pointermove", e => {
+  const t = e.target.closest("[data-tip]");
+  if (!t) { tip.style.display = "none"; return; }
+  tip.innerHTML = t.dataset.tip;
+  tip.style.display = "block";
+  const x = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8);
+  const y = e.clientY + 16 + tip.offsetHeight > innerHeight ? e.clientY - tip.offsetHeight - 10 : e.clientY + 16;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+});
+document.addEventListener("pointerleave", () => { tip.style.display = "none"; });
+
+render();
+setInterval(tick, 1000);
+setInterval(renderCards, 5 * 60e3);
+
+/* on the public website, pick up the hourly rebuild without a reload */
+if (location.protocol.startsWith("http")) {
+  setInterval(async () => {
+    try {
+      const r = await fetch("data.json", { cache: "no-store" });
+      if (!r.ok) return;
+      const fresh = await r.json();
+      if (fresh.generated !== DATA.generated) { DATA = fresh; render(); }
+    } catch {}
+  }, 10 * 60e3);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# built pages and local-only state
+site/
+dashboard.html
+share.html
+data/last_opened
+data/traffic/
+__pycache__/
