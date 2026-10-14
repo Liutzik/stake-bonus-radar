@@ -301,7 +301,7 @@ def build(now=None):
         site_out["history"] = [{"kind": e["kind"], "time": e["time"].isoformat(), "title": e["title"],
                                 "month": f"{e['month'][0]}-{e['month'][1]:02d}", "offset": e["offset"],
                                 "post": e["post"]} for e in events]
-        site_out["hours"] = hour_distribution([e for e in events if e["kind"] == "monthly"], now)
+        site_out["hours"] = hour_distribution(events, now)
         site_out["weekly"] = next_weekly(now).isoformat()
         site_out["traffic"] = traffic.analyse(site, events, preds, now)
         out["sites"][site] = site_out

@@ -79,14 +79,10 @@ def summary_lines(now):
 
 
 def page_data(now):
-    """Everything the page shows: the monthly bonus only."""
+    """Everything the page shows: every bonus type, without the player counts."""
     data = model.build(now)
     for site_data in data["sites"].values():
         site_data.pop("traffic", None)
-        site_data["history"] = [e for e in site_data["history"] if e["kind"] == "monthly"]
-        site_data["bonuses"] = {k: v for k, v in site_data["bonuses"].items() if k == "monthly"}
-        site_data["backtest"] = {k: v for k, v in site_data["backtest"].items() if k == "monthly"}
-        site_data["latest"] = {k: v for k, v in site_data["latest"].items() if k == "monthly"}
     return data
 
 

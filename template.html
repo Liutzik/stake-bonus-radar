@@ -84,7 +84,7 @@ h2 { font-size: 17px; margin: 0 0 4px; }
   padding: 6px 14px; border-radius: 7px; cursor: pointer;
 }
 .seg button[aria-pressed="true"] { background: var(--surface-1); color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,.12); }
-.cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .card, .panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
 .card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -154,7 +154,7 @@ a { color: var(--accent); }
     <div class="panel-head">
       <div>
         <h2>Drop calendar</h2>
-        <div class="sub">Day of the month each monthly bonus landed on, from Stake's official Telegram channel. Click a dot to open the post.</div>
+        <div class="sub">Day of the month each bonus landed on, from Stake's official Telegram channel. Click a dot to open the post.</div>
       </div>
       <div class="legend" id="legend"></div>
     </div>
@@ -163,7 +163,7 @@ a { color: var(--accent); }
 
   <div class="two">
     <section class="panel">
-      <div class="panel-head"><div><h2>Time of day</h2><div class="sub">Recent monthly drops by hour, in your local time</div></div></div>
+      <div class="panel-head"><div><h2>Time of day</h2><div class="sub">Recent drops by hour, in your local time</div></div></div>
       <div class="chart" id="hours"></div>
     </section>
     <section class="panel">
@@ -270,7 +270,7 @@ function renderCards() {
   const now = Date.now();
   const s = DATA.sites[site];
   let html = "";
-  for (const kind of ["monthly"]) {
+  for (const kind of ["monthly", "pre", "post"]) {
     const b = s.bonuses[kind];
     const K = KINDS[kind];
     if (!b) { html += `<article class="card"><div class="kind"><span class="swatch" style="background:${K.color}"></span>${K.label}</div><div class="muted">No upcoming window.</div></article>`; continue; }
@@ -298,10 +298,18 @@ function renderCards() {
       extra = `<div class="spark">${sparkline(r.days, r.peakDay, now)}</div>
         <div class="sub">${latestLine(s, kind)} · based on ${b.basis} past drops</div>`;
     }
-    html += `<article class="card solo">
-      <div class="solo-main"><div class="card-head"><div class="kind"><span class="swatch" style="background:${K.color}"></span>${month} ${K.label.toLowerCase()} bonus</div>${chip}</div>
-      ${big}${line}</div><div class="solo-side">${extra}</div></article>`;
+    html += `<article class="card">
+      <div class="card-head"><div class="kind"><span class="swatch" style="background:${K.color}"></span>${month} ${K.label.toLowerCase()}</div>${chip}</div>
+      ${big}${line}${extra}</article>`;
   }
+  const weekly = new Date(s.weekly).getTime();
+  html += `<article class="card">
+    <div class="card-head"><div class="kind"><span class="swatch" style="background:var(--text-muted)"></span>Weekly</div><span class="chip">Fixed schedule</span></div>
+    <div class="big">${fmtDay.format(weekly)}</div>
+    <div class="count">${fmtTime.format(weekly)} your time · in <b data-cd="${weekly}"></b></div>
+    <dl><dt>Every</dt><dd>${new Intl.DateTimeFormat(undefined, { weekday: "long" }).format(weekly)} ${fmtTime.format(weekly)}</dd><dt>Who</dt><dd>VIPs (Bronze+)</dd><dt>Where</dt><dd>VIP Telegram / email</dd></dl>
+    <div class="sub">Not announced publicly, so this one is the published schedule, not a prediction.</div>
+  </article>`;
   document.getElementById("cards").innerHTML = html;
   tick();
 }
@@ -317,7 +325,7 @@ function tick() {
 
 function renderCalendar() {
   const s = DATA.sites[site];
-  const monthly = s.history.filter(e => e.kind === "monthly");
+  const monthly = s.history;
   const months = [...new Set(monthly.map(e => e.month))].sort().slice(-18);
   const W = 860, rowH = 22, top = 8, left = 64, right = 10;
   const H = top + months.length * rowH + 26;
@@ -352,8 +360,8 @@ function renderCalendar() {
   nowMark = `<line x1="${X(domNow)}" x2="${X(domNow)}" y1="${yNow}" y2="${yNow + rowH}" stroke="var(--now)" stroke-width="2"></line>`;
   document.getElementById("calendar").innerHTML = `<div class="scroll"><svg viewBox="0 0 ${W} ${H}" style="min-width:620px">
     <g class="axis">${g}</g>${rows}${dots}${nowMark}</svg></div>`;
-  document.getElementById("legend").innerHTML = [KINDS.monthly]
-    .map(k => `<span><span class="swatch" style="background:${k.color}"></span>${k.label} bonus</span>`).join("")
+  document.getElementById("legend").innerHTML = Object.values(KINDS)
+    .map(k => `<span><span class="swatch" style="background:${k.color}"></span>${k.label}</span>`).join("")
     + `<span><span style="width:2px;height:12px;background:var(--now)"></span>Today</span>`;
 }
 
@@ -385,6 +393,8 @@ function renderAccuracy() {
   const rows = s.backtest.monthly || [];
   if (!rows.length) { document.getElementById("accuracy").innerHTML = `<div class="muted">Not enough history yet.</div>`; return; }
   const hits = rows.filter(r => r.hit).length;
+  const post = s.backtest.post || [];
+  const phits = post.filter(r => r.hit).length;
   const err = rows.reduce((a, r) => a + r.err, 0) / rows.length;
   const naive = rows.filter(r => r.naive_err !== null);
   const nerr = naive.reduce((a, r) => a + r.naive_err, 0) / Math.max(1, naive.length);
@@ -396,6 +406,7 @@ function renderAccuracy() {
     <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:10px">
       <div><div class="stat">${hits}/${rows.length}</div><div class="sub">monthlies inside the 80% window</div></div>
       <div><div class="stat">${err.toFixed(1)}d</div><div class="sub">average miss of the single best day<br>("always the 15th": ${nerr.toFixed(1)}d)</div></div>
+      ${post.length ? `<div><div class="stat">${phits}/${post.length}</div><div class="sub">post-monthlies inside the 80% window</div></div>` : ""}
     </div>
     <div class="scroll"><table><thead><tr><th>Month</th><th>Dropped</th><th>80% window</th><th></th></tr></thead><tbody>${table}</tbody></table></div>
     <div class="sub" style="margin-top:8px">The exact day is genuinely noisy (anywhere from the 3rd to the 15th lately), so read the windows, not the single best day.</div>`;
@@ -404,9 +415,9 @@ function renderAccuracy() {
 function renderSites() {
   document.getElementById("sites").innerHTML = Object.keys(DATA.sites)
     .map(k => `<button type="button" aria-pressed="${k === site}" data-site="${k}">${k}</button>`).join("");
-  const latest = Math.max(...Object.values(DATA.sites).flatMap(s => s.history.filter(e => e.kind === "monthly").map(e => +new Date(e.time))));
+  const latest = Math.max(...Object.values(DATA.sites).flatMap(s => s.history.map(e => +new Date(e.time))));
   document.getElementById("asof").textContent =
-    `Updated ${fmtFull.format(new Date(DATA.generated))} · last monthly bonus ${fmtFull.format(latest)} · all times in your local time`;
+    `Updated ${fmtFull.format(new Date(DATA.generated))} · latest announcement ${fmtFull.format(latest)} · all times in your local time`;
 }
 
 function render() { renderSites(); renderCards(); renderCalendar(); renderHours(); renderAccuracy(); }
